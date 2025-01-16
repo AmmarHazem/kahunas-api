@@ -3,14 +3,29 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UsersService } from 'src/users/users.service';
+import { User } from 'src/users/entities/user.entity';
+import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
+import * as jose from 'jose';
 
 @Injectable()
 export class AuthService {
+  private encryptionKey: Uint8Array;
+
   constructor(
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const secret = this.configService.get<string>('JWT_SECRET');
+    const hash = crypto.createHash('sha256').update(secret).digest();
+    this.encryptionKey = new Uint8Array(hash);
+  }
 
   async register(registerDto: RegisterDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -18,9 +33,19 @@ export class AuthService {
       ...registerDto,
       password: hashedPassword,
     });
-
-    const token = this.generateToken(user);
-    return { user, token };
+    const token = await this.generateToken(user);
+    const createdUser = await this.usersRepository.findOne({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+      },
+    });
+    return { user: createdUser, token };
   }
 
   async login(loginDto: LoginDto) {
@@ -28,7 +53,6 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
@@ -36,17 +60,38 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
-    const token = this.generateToken(user);
-    return { user, token };
+    const loginUser = await this.usersRepository.findOne({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+      },
+    });
+    const token = await this.generateToken(user);
+    return { user: loginUser, token };
   }
 
-  private generateToken(user: any) {
+  private async generateToken(user: User) {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
     };
-    return this.jwtService.sign(payload);
+
+    // Sign the JWT
+    const jwt = await this.jwtService.signAsync(payload);
+
+    // Encrypt the JWT
+    const jwe = await new jose.EncryptJWT({ token: jwt })
+      .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .encrypt(this.encryptionKey);
+
+    return jwe;
   }
 }

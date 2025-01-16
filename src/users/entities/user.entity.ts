@@ -29,7 +29,7 @@ export class User {
   lastName: string;
 
   @Column({
-    type: 'enum',
+    type: 'varchar',
     enum: UserRole,
     default: UserRole.CLIENT,
   })

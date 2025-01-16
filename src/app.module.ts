@@ -16,7 +16,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
       database: 'coaching.sqlite',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: process.env.NODE_ENV !== 'production',
-      logging: process.env.NODE_ENV !== 'production',
+      logging: ['error', 'warn', 'info'],
     }),
     AuthModule,
     UsersModule,

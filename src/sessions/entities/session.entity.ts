@@ -26,7 +26,7 @@ export class Session {
   scheduledAt: Date;
 
   @Column({
-    type: 'enum',
+    type: 'varchar',
     enum: SessionStatus,
     default: SessionStatus.SCHEDULED,
   })
