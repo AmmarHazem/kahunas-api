@@ -8,7 +8,7 @@ import {
   Index,
 } from 'typeorm';
 import { UserRole } from '../enums/user-role.enum';
-import { Session } from '../../sessions/entities/session.entity';
+import { Session } from 'src/sessions/entities/session.entity';
 
 @Entity('users')
 export class User {
