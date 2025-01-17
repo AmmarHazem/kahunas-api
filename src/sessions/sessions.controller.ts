@@ -36,10 +36,11 @@ export class SessionsController {
   }
 
   @Get('upcoming')
-  findUpcoming(@Request() req) {
+  findUpcoming(@Request() req, @Query() query?: IPaginationOptions) {
     return this.sessionsService.findUpcoming({
       clientId: req.user.id,
       role: req.user.role,
+      paginationOptions: query,
     });
   }
 
