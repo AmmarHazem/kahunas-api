@@ -10,12 +10,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './enums/user-role.enum';
 import { RequestUser } from 'src/auth/dto/RequestUser.dto';
+import { AnalyticsService } from 'src/analytics/analytics.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async create(
@@ -66,6 +68,7 @@ export class UsersService {
   }
 
   async delete(id: string): Promise<void> {
+    await this.analyticsService.handleCoachDeleted({ coachId: id });
     await this.usersRepository.delete(id);
   }
 }

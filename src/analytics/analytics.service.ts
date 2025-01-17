@@ -16,6 +16,10 @@ export class AnalyticsService {
     private readonly coachAnalyticsRepository: Repository<CoachAnalytics>,
   ) {}
 
+  handleCoachDeleted({ coachId }: { coachId: string }) {
+    return this.coachAnalyticsRepository.delete({ coachId });
+  }
+
   handleClientSessionStatusUpdated({
     coachId,
     status,
