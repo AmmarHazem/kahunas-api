@@ -123,16 +123,40 @@ export class SessionsService {
     );
   }
 
-  async findUpcoming(clientId: string): Promise<Session[]> {
-    return this.sessionsRepository.find({
+  async findUpcoming({
+    clientId,
+    role,
+    paginationOptions,
+  }: {
+    clientId: string;
+    role: UserRole;
+    paginationOptions?: IPaginationOptions;
+  }): Promise<IPaginationResult<Session>> {
+    const page = paginationOptions?.page
+      ? parseInt(paginationOptions.page, 10)
+      : 1;
+    const limit = paginationOptions?.limit
+      ? parseInt(paginationOptions.limit, 10)
+      : 10;
+    const skip = (page - 1) * limit;
+    const [sessions, total] = await this.sessionsRepository.findAndCount({
       where: {
-        client: { id: clientId },
+        client: role === UserRole.ADMIN ? undefined : { id: clientId },
         status: SessionStatus.SCHEDULED,
         scheduledAt: MoreThan(new Date()),
       },
       order: {
         scheduledAt: 'ASC',
       },
+      skip,
+      take: Math.min(limit, 100),
     });
+    const result: IPaginationResult<Session> = {
+      data: sessions,
+      total,
+      page,
+      limit,
+    };
+    return result;
   }
 }

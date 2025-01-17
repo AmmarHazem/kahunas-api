@@ -37,7 +37,10 @@ export class SessionsController {
 
   @Get('upcoming')
   findUpcoming(@Request() req) {
-    return this.sessionsService.findUpcoming(req.user.id);
+    return this.sessionsService.findUpcoming({
+      clientId: req.user.id,
+      role: req.user.role,
+    });
   }
 
   @Get(':id')
