@@ -1,10 +1,15 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './enums/user-role.enum';
+import { RequestUser } from 'src/auth/dto/RequestUser.dto';
 
 @Injectable()
 export class UsersService {
@@ -47,7 +52,11 @@ export class UsersService {
   async update(
     id: string,
     updateUserDto: UpdateUserDto,
+    user: RequestUser,
   ): Promise<{ user: User | null }> {
+    if (user.role !== UserRole.ADMIN && user.id !== id) {
+      throw new ForbiddenException('You are not allowed to update this user');
+    }
     await this.usersRepository.update(id, updateUserDto);
     const res = await this.findById(id);
     return res;
