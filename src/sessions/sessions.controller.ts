@@ -8,6 +8,7 @@ import {
   UseGuards,
   Request,
   Query,
+  Delete,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SessionsService } from './sessions.service';
@@ -88,5 +89,12 @@ export class SessionsController {
       req.user.id,
       req.user.role,
     );
+  }
+
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RoleGuard)
+  @Delete(':id')
+  delete(@Param('id') id: string) {
+    return this.sessionsService.deleteSession({ sessionId: id });
   }
 }

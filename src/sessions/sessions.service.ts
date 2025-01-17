@@ -371,4 +371,8 @@ export class SessionsService {
     };
     return result;
   }
+
+  async deleteSession({ sessionId }: { sessionId: string }): Promise<void> {
+    await this.sessionsRepository.delete(sessionId);
+  }
 }
