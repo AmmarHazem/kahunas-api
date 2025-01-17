@@ -30,23 +30,50 @@ export class SessionsController {
     return this.sessionsService.create(createSessionDto, req.user.id);
   }
 
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RoleGuard)
   @Get()
   findAll(@Request() req, @Query() query: IPaginationOptions) {
     return this.sessionsService.findAll(req.user.id, req.user.role, query);
   }
 
-  @Get('upcoming')
-  findUpcoming(@Request() req, @Query() query?: IPaginationOptions) {
-    return this.sessionsService.findUpcoming({
+  @Roles(UserRole.CLIENT)
+  @UseGuards(RoleGuard)
+  @Get('client-upcoming')
+  findClientUpcoming(@Request() req, @Query() query?: IPaginationOptions) {
+    return this.sessionsService.findClientUpcoming({
       clientId: req.user.id,
-      role: req.user.role,
       paginationOptions: query,
     });
   }
 
+  @Roles(UserRole.COACH)
+  @UseGuards(RoleGuard)
+  @Get('coach-upcoming')
+  findCoachUpcoming(@Request() req, @Query() query?: IPaginationOptions) {
+    return this.sessionsService.findCoachUpcoming({
+      coachId: req.user.id,
+      paginationOptions: query,
+    });
+  }
+
+  @Roles(UserRole.CLIENT)
+  @UseGuards(RoleGuard)
+  @Get('client-complete')
+  getClientComplete(@Request() req, @Query() query?: IPaginationOptions) {
+    return this.sessionsService.getClientComplete(req.user.id, query);
+  }
+
+  @Roles(UserRole.COACH)
+  @UseGuards(RoleGuard)
+  @Get('coach-complete')
+  getCoachComplete(@Request() req, @Query() query?: IPaginationOptions) {
+    return this.sessionsService.getCoachComplete(req.user.id, query);
+  }
+
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.sessionsService.findOne(id);
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.sessionsService.getUserSession(id, req.user.role, req.user.id);
   }
 
   @Put(':id')
@@ -61,10 +88,5 @@ export class SessionsController {
       req.user.id,
       req.user.role,
     );
-  }
-
-  @Put(':id/complete')
-  complete(@Param('id') id: string, @Request() req) {
-    return this.sessionsService.complete(id, req.user.id);
   }
 }

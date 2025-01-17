@@ -79,10 +79,66 @@ export class SessionsService {
     return result;
   }
 
+  async getUserSession(
+    id: string,
+    role: UserRole,
+    userId: string,
+  ): Promise<{ session: Session }> {
+    let canAccess = false;
+    const session = await this.sessionsRepository.findOne({
+      where: { id },
+      relations: ['coach', 'client'],
+      select: {
+        coach: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+        client: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    });
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+    if (role === UserRole.ADMIN) {
+      canAccess = true;
+    } else if (role === UserRole.COACH && session.coach.id === userId) {
+      canAccess = true;
+    } else if (role === UserRole.CLIENT && session.client.id === userId) {
+      canAccess = true;
+    }
+    if (!canAccess) {
+      throw new ForbiddenException(
+        'You are not authorized to access this session',
+      );
+    }
+    return { session };
+  }
+
   async findOne(id: string): Promise<Session> {
     const session = await this.sessionsRepository.findOne({
       where: { id },
       relations: ['coach', 'client'],
+      select: {
+        coach: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+        client: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
     });
     if (!session) {
       throw new NotFoundException('Session not found');
@@ -91,45 +147,136 @@ export class SessionsService {
   }
 
   async update(
-    id: string,
+    sessionId: string,
     updateSessionDto: UpdateSessionDto,
     userId: string,
     role: UserRole,
-  ): Promise<Session> {
-    const session = await this.findOne(id);
+  ): Promise<{ session: Session }> {
+    const session = await this.findOne(sessionId);
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+    let canAccess = false;
+    if (role === UserRole.ADMIN) {
+      canAccess = true;
+    } else if (role === UserRole.COACH && session.coach.id === userId) {
+      canAccess = true;
+    } else if (role === UserRole.CLIENT && session.client.id === userId) {
+      canAccess = true;
+    }
+    if (!canAccess) {
+      throw new ForbiddenException(
+        'You are not authorized to access this session',
+      );
+    }
     if (role === UserRole.COACH && session.coach.id !== userId) {
       throw new ForbiddenException('You can only update your own sessions');
     }
     if (role === UserRole.CLIENT && session.client.id !== userId) {
       throw new ForbiddenException('You can only update your own sessions');
     }
-    await this.sessionsRepository.update(id, updateSessionDto);
-    return this.findOne(id);
+    await this.sessionsRepository.update(sessionId, updateSessionDto);
+    const updatedSession = await this.findOne(sessionId);
+    return { session: updatedSession };
   }
 
-  async complete(id: string, userId: string): Promise<Session> {
-    const session = await this.findOne(id);
-    if (session.client.id !== userId) {
-      throw new ForbiddenException('Only clients can complete sessions');
-    }
-    if (session.status !== SessionStatus.SCHEDULED) {
-      throw new ForbiddenException('Session is not in scheduled state');
-    }
-    return this.update(
-      id,
-      { status: SessionStatus.COMPLETED },
-      userId,
-      UserRole.CLIENT,
-    );
+  async getCoachComplete(
+    userId: string,
+    paginationOptions?: IPaginationOptions,
+  ): Promise<IPaginationResult<Session>> {
+    const page = paginationOptions?.page
+      ? parseInt(paginationOptions.page, 10)
+      : 1;
+    const limit = paginationOptions?.limit
+      ? parseInt(paginationOptions.limit, 10)
+      : 10;
+    const skip = (page - 1) * limit;
+    const [sessions, total] = await this.sessionsRepository.findAndCount({
+      where: {
+        coach: { id: userId },
+        status: SessionStatus.COMPLETED,
+      },
+      relations: ['coach', 'client'],
+      select: {
+        coach: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+        client: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+      order: {
+        scheduledAt: 'ASC',
+      },
+      skip,
+      take: Math.min(limit, 100),
+    });
+    const result: IPaginationResult<Session> = {
+      data: sessions,
+      total,
+      page,
+      limit,
+    };
+    return result;
   }
 
-  async findUpcoming({
-    clientId,
-    role,
+  async getClientComplete(
+    userId: string,
+    paginationOptions?: IPaginationOptions,
+  ): Promise<IPaginationResult<Session>> {
+    const page = paginationOptions?.page
+      ? parseInt(paginationOptions.page, 10)
+      : 1;
+    const limit = paginationOptions?.limit
+      ? parseInt(paginationOptions.limit, 10)
+      : 10;
+    const skip = (page - 1) * limit;
+    const [sessions, total] = await this.sessionsRepository.findAndCount({
+      where: {
+        client: { id: userId },
+        status: SessionStatus.COMPLETED,
+      },
+      relations: ['coach', 'client'],
+      select: {
+        coach: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+        client: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+      order: {
+        scheduledAt: 'ASC',
+      },
+      skip,
+      take: Math.min(limit, 100),
+    });
+    const result: IPaginationResult<Session> = {
+      data: sessions,
+      total,
+      page,
+      limit,
+    };
+    return result;
+  }
+
+  async findCoachUpcoming({
+    coachId,
     paginationOptions,
   }: {
-    clientId: string;
-    role: UserRole;
+    coachId: string;
     paginationOptions?: IPaginationOptions;
   }): Promise<IPaginationResult<Session>> {
     const page = paginationOptions?.page
@@ -141,9 +288,74 @@ export class SessionsService {
     const skip = (page - 1) * limit;
     const [sessions, total] = await this.sessionsRepository.findAndCount({
       where: {
-        client: role === UserRole.ADMIN ? undefined : { id: clientId },
+        coach: { id: coachId },
         status: SessionStatus.SCHEDULED,
         scheduledAt: MoreThan(new Date()),
+      },
+      relations: ['coach', 'client'],
+      select: {
+        coach: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+        client: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+      order: {
+        scheduledAt: 'ASC',
+      },
+      skip,
+      take: Math.min(limit, 100),
+    });
+    const result: IPaginationResult<Session> = {
+      data: sessions,
+      total,
+      page,
+      limit,
+    };
+    return result;
+  }
+
+  async findClientUpcoming({
+    clientId,
+    paginationOptions,
+  }: {
+    clientId: string;
+    paginationOptions?: IPaginationOptions;
+  }): Promise<IPaginationResult<Session>> {
+    const page = paginationOptions?.page
+      ? parseInt(paginationOptions.page, 10)
+      : 1;
+    const limit = paginationOptions?.limit
+      ? parseInt(paginationOptions.limit, 10)
+      : 10;
+    const skip = (page - 1) * limit;
+    const [sessions, total] = await this.sessionsRepository.findAndCount({
+      where: {
+        client: { id: clientId },
+        status: SessionStatus.SCHEDULED,
+        scheduledAt: MoreThan(new Date()),
+      },
+      relations: ['coach', 'client'],
+      select: {
+        coach: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+        client: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
       },
       order: {
         scheduledAt: 'ASC',
