@@ -89,7 +89,7 @@ export class AuthService {
     const jwe = await new jose.EncryptJWT({ token: jwt })
       .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
       .setIssuedAt()
-      .setExpirationTime('24h')
+      //   .setExpirationTime('24h')
       .encrypt(this.encryptionKey);
 
     return jwe;
