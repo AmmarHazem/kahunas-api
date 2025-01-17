@@ -4,6 +4,7 @@
 /build
 
 .cursorrules
+coaching.sqlite-journal
 
 # Logs
 logs
