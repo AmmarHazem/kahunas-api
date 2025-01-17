@@ -22,7 +22,7 @@ export class Session {
   description: string | null;
 
   @Column({ type: 'datetime' })
-  @Index()
+  @Index('idx_client_status_scheduled', ['client', 'status', 'scheduledAt'])
   scheduledAt: Date;
 
   @Column({
@@ -34,7 +34,7 @@ export class Session {
   status: SessionStatus;
 
   @ManyToOne(() => User, (user) => user.clientSessions)
-  @Index()
+  @Index('idx_client_status', ['client', 'status'])
   client: User;
 
   @ManyToOne(() => User, (user) => user.coachSessions)

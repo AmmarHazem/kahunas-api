@@ -29,7 +29,7 @@ export class AnalyticsController {
   }
 
   @Get('coaches/top')
-  async getTopCoaches(@Query('limit') limit: number) {
-    return this.analyticsService.getTopCoaches(limit);
+  async getTopCoaches(@Query('limit') limit?: number) {
+    return this.analyticsService.getTopCoaches(limit || 10);
   }
 }

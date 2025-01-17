@@ -5,42 +5,106 @@ import { Session } from '../sessions/entities/session.entity';
 import { SessionStatus } from '../sessions/enums/session-status.enum';
 import { CoachStats } from './interfaces/coach-stats.interface';
 import { ClientProgress } from './interfaces/client-progress.interface';
+import { CoachAnalytics } from './entities/coach-analytics.entity';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
     @InjectRepository(Session)
     private readonly sessionsRepository: Repository<Session>,
+    @InjectRepository(CoachAnalytics)
+    private readonly coachAnalyticsRepository: Repository<CoachAnalytics>,
   ) {}
 
-  async getCoachStats(coachId: string): Promise<CoachStats> {
-    const [totalSessions, completedSessions] = await Promise.all([
-      this.sessionsRepository.count({
-        where: { coach: { id: coachId } },
-      }),
-      this.sessionsRepository.count({
-        where: {
-          coach: { id: coachId },
-          status: SessionStatus.COMPLETED,
+  handleClientSessionStatusUpdated({
+    coachId,
+    status,
+  }: {
+    coachId: string;
+    status: SessionStatus;
+  }) {
+    if (status === SessionStatus.COMPLETED) {
+      this.coachAnalyticsRepository.update(
+        { coachId: coachId },
+        {
+          completedSessions: () => 'completedSessions + 1',
+          upcomingSessions: () => 'upcomingSessions - 1',
         },
-      }),
-    ]);
+      );
+    } else if (status === SessionStatus.CANCELLED) {
+      this.coachAnalyticsRepository.update(
+        { coachId: coachId },
+        { upcomingSessions: () => 'upcomingSessions - 1' },
+      );
+    }
+  }
 
-    const upcomingSessions = await this.sessionsRepository.count({
-      where: {
-        coach: { id: coachId },
-        status: SessionStatus.SCHEDULED,
-        scheduledAt: MoreThan(new Date()),
-      },
+  handleCoachCreated({ coachId }: { coachId: string }) {
+    this.coachAnalyticsRepository.insert({
+      coachId,
+      totalSessions: 0,
+      completedSessions: 0,
+      upcomingSessions: 0,
     });
+  }
 
-    return {
+  handleNewCoachSessionAdded({ coachId }: { coachId: string }) {
+    this.coachAnalyticsRepository.update(
+      { coachId: coachId },
+      {
+        totalSessions: () => 'totalSessions + 1',
+        upcomingSessions: () => 'upcomingSessions + 1',
+      },
+    );
+  }
+
+  async updateCoachAnalytics(coachId: string): Promise<void> {
+    const [totalSessions, completedSessions, upcomingSessions] =
+      await Promise.all([
+        this.sessionsRepository.count({
+          where: { coach: { id: coachId } },
+        }),
+        this.sessionsRepository.count({
+          where: {
+            coach: { id: coachId },
+            status: SessionStatus.COMPLETED,
+          },
+        }),
+        this.sessionsRepository.count({
+          where: {
+            coach: { id: coachId },
+            status: SessionStatus.SCHEDULED,
+            scheduledAt: MoreThan(new Date()),
+          },
+        }),
+      ]);
+    const completionRate = totalSessions
+      ? (completedSessions / totalSessions) * 100
+      : 0;
+    await this.coachAnalyticsRepository.save({
+      coachId,
       totalSessions,
       completedSessions,
       upcomingSessions,
-      completionRate: totalSessions
-        ? (completedSessions / totalSessions) * 100
-        : 0,
+      completionRate,
+    });
+  }
+
+  async getCoachStats(coachId: string): Promise<CoachStats> {
+    let analytics = await this.coachAnalyticsRepository.findOne({
+      where: { coachId },
+    });
+    if (!analytics) {
+      await this.updateCoachAnalytics(coachId);
+      analytics = await this.coachAnalyticsRepository.findOne({
+        where: { coachId },
+      });
+    }
+    return {
+      totalSessions: analytics.totalSessions,
+      completedSessions: analytics.completedSessions,
+      upcomingSessions: analytics.upcomingSessions,
+      completionRate: analytics.completionRate,
     };
   }
 
@@ -56,7 +120,6 @@ export class AnalyticsService {
         },
       }),
     ]);
-
     const upcomingSessions = await this.sessionsRepository.count({
       where: {
         client: { id: clientId },
@@ -64,7 +127,6 @@ export class AnalyticsService {
         scheduledAt: MoreThan(new Date()),
       },
     });
-
     return {
       totalSessions,
       completedSessions,
@@ -75,23 +137,21 @@ export class AnalyticsService {
     };
   }
 
-  async getTopCoaches(limit: number = 10): Promise<any[]> {
-    return this.sessionsRepository
-      .createQueryBuilder('session')
-      .select('coach.id', 'coachId')
-      .addSelect('COUNT(*)', 'totalSessions')
-      .addSelect(
-        'COUNT(CASE WHEN session.status = :completed THEN 1 END)',
-        'completedSessions',
-      )
-      .leftJoin('session.coach', 'coach')
-      .where('session.status = :completed', {
-        completed: SessionStatus.COMPLETED,
-      })
-      .groupBy('coach.id')
-      .orderBy('completedSessions', 'DESC')
+  async getTopCoaches(limit: number = 10) {
+    const topCoaches = await this.coachAnalyticsRepository
+      .createQueryBuilder('analytics')
+      .leftJoin('analytics.coach', 'coach')
+      .addSelect([
+        'coach.id',
+        'coach.firstName',
+        'coach.lastName',
+        'coach.email',
+      ])
+      .addSelect('analytics.totalSessions', 'totalSessions')
+      .addSelect('analytics.completedSessions', 'completedSessions')
+      .orderBy('analytics.completedSessions', 'DESC')
       .limit(limit)
-      .setParameter('completed', SessionStatus.COMPLETED)
       .getRawMany();
+    return { topCoaches };
   }
 }

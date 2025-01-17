@@ -7,10 +7,11 @@ import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UserRole } from 'src/users/enums/user-role.enum';
+import { AnalyticsService } from 'src/analytics/analytics.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import * as jose from 'jose';
-import { UserRole } from 'src/users/enums/user-role.enum';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly analyticsService: AnalyticsService,
   ) {
     const secret = this.configService.get<string>('JWT_SECRET');
     const hash = crypto.createHash('sha256').update(secret).digest();
@@ -39,17 +41,24 @@ export class AuthService {
         registerDto.role === UserRole.COACH ? UserRole.COACH : UserRole.CLIENT,
       );
       const token = await this.generateToken(user);
-      const createdUser = await this.usersRepository.findOne({
-        where: { id: user.id },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          firstName: true,
-          lastName: true,
-          createdAt: true,
-        },
-      });
+      const [createdUser] = await Promise.all([
+        this.usersRepository.findOne({
+          where: { id: user.id },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+          },
+        }),
+        registerDto.role === UserRole.COACH
+          ? this.analyticsService.handleCoachCreated({
+              coachId: user.id,
+            })
+          : Promise.resolve(null),
+      ]);
       return { user: createdUser, token };
     } catch (e) {
       console.log('--- register error ---', e);

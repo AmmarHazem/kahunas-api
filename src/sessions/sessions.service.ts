@@ -12,12 +12,14 @@ import { SessionStatus } from './enums/session-status.enum';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { IPaginationOptions } from 'src/interfaces/IPaginationOptions';
 import { IPaginationResult } from 'src/interfaces/IPaginationResult';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 @Injectable()
 export class SessionsService {
   constructor(
     @InjectRepository(Session)
     private readonly sessionsRepository: Repository<Session>,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async create(
@@ -29,7 +31,13 @@ export class SessionsService {
       coach: { id: coachId },
       client: { id: createSessionDto.clientId },
     });
-    return this.sessionsRepository.save(session);
+    const [savedSession] = await Promise.all([
+      this.sessionsRepository.save(session),
+      this.analyticsService.handleNewCoachSessionAdded({
+        coachId,
+      }),
+    ]);
+    return savedSession;
   }
 
   async findAll(
@@ -169,14 +177,14 @@ export class SessionsService {
         'You are not authorized to access this session',
       );
     }
-    if (role === UserRole.COACH && session.coach.id !== userId) {
-      throw new ForbiddenException('You can only update your own sessions');
-    }
-    if (role === UserRole.CLIENT && session.client.id !== userId) {
-      throw new ForbiddenException('You can only update your own sessions');
-    }
     await this.sessionsRepository.update(sessionId, updateSessionDto);
-    const updatedSession = await this.findOne(sessionId);
+    const [updatedSession] = await Promise.all([
+      this.findOne(sessionId),
+      this.analyticsService.handleClientSessionStatusUpdated({
+        coachId: session.coach.id,
+        status: updateSessionDto.status,
+      }),
+    ]);
     return { session: updatedSession };
   }
 
@@ -374,5 +382,25 @@ export class SessionsService {
 
   async deleteSession({ sessionId }: { sessionId: string }): Promise<void> {
     await this.sessionsRepository.delete(sessionId);
+  }
+
+  async updateSession(
+    id: string,
+    updateSessionDto: UpdateSessionDto,
+  ): Promise<Session> {
+    const session = await this.sessionsRepository.findOne({
+      where: { id },
+      relations: ['coach', 'client'],
+    });
+    if (!session) {
+      throw new NotFoundException(`Session with ID ${id} not found`);
+    }
+    const oldStatus = session.status;
+    Object.assign(session, updateSessionDto);
+    const updatedSession = await this.sessionsRepository.save(session);
+    if (oldStatus !== updatedSession.status) {
+      await this.analyticsService.updateCoachAnalytics(session.coach.id);
+    }
+    return updatedSession;
   }
 }
