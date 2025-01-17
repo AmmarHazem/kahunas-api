@@ -18,13 +18,16 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<{ user: User }> {
+  async create(
+    createUserDto: CreateUserDto,
+    role: UserRole,
+  ): Promise<{ user: User }> {
     const { user: existingUser } = await this.findByEmail(createUserDto.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
     const user = this.usersRepository.create(createUserDto);
-    user.role = UserRole.ADMIN;
+    user.role = role;
     const savedUser = await this.usersRepository.save(user);
     return { user: savedUser };
   }

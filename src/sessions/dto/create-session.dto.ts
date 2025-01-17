@@ -1,11 +1,12 @@
-import { IsString, IsDateString, IsUUID } from 'class-validator';
+import { IsString, IsDateString, IsUUID, IsOptional } from 'class-validator';
 
 export class CreateSessionDto {
   @IsString()
   title: string;
 
   @IsString()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @IsDateString()
   scheduledAt: Date;

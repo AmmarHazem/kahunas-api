@@ -7,11 +7,16 @@ import {
   Param,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SessionsService } from './sessions.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
+import { Roles } from 'src/auth/guards/Role.decorator';
+import { UserRole } from 'src/users/enums/user-role.enum';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { IPaginationOptions } from 'src/interfaces/IPaginationOptions';
 
 @Controller('sessions')
 @UseGuards(JwtAuthGuard)
@@ -19,13 +24,15 @@ export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
 
   @Post()
+  @Roles(UserRole.COACH)
+  @UseGuards(RoleGuard)
   create(@Body() createSessionDto: CreateSessionDto, @Request() req) {
     return this.sessionsService.create(createSessionDto, req.user.id);
   }
 
   @Get()
-  findAll(@Request() req) {
-    return this.sessionsService.findAll(req.user.id, req.user.role);
+  findAll(@Request() req, @Query() query: IPaginationOptions) {
+    return this.sessionsService.findAll(req.user.id, req.user.role, query);
   }
 
   @Get('upcoming')

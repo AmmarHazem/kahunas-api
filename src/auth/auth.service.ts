@@ -31,10 +31,13 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     try {
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-      const { user } = await this.usersService.create({
-        ...registerDto,
-        password: hashedPassword,
-      });
+      const { user } = await this.usersService.create(
+        {
+          ...registerDto,
+          password: hashedPassword,
+        },
+        registerDto.role === UserRole.COACH ? UserRole.COACH : UserRole.CLIENT,
+      );
       const token = await this.generateToken(user);
       const createdUser = await this.usersRepository.findOne({
         where: { id: user.id },

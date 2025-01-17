@@ -18,6 +18,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Request as ExpressRequest } from 'express';
 import { RequestUser } from 'src/auth/dto/RequestUser.dto';
+import { UserRole } from './enums/user-role.enum';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -48,6 +49,6 @@ export class UsersController {
   @Post('admin')
   @UseGuards(AdminGuard)
   async createAdmin(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+    return this.usersService.create(createUserDto, UserRole.ADMIN);
   }
 }

@@ -19,7 +19,7 @@ export class Session {
   title: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description: string | null;
 
   @Column({ type: 'datetime' })
   @Index()
