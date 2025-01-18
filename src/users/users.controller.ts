@@ -10,6 +10,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -19,6 +20,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { Request as ExpressRequest } from 'express';
 import { RequestUser } from 'src/auth/dto/RequestUser.dto';
 import { UserRole } from './enums/user-role.enum';
+import { IPaginationOptions } from 'src/interfaces/IPaginationOptions';
+import { IPaginationResult } from 'src/interfaces/IPaginationResult';
+import { User } from './entities/user.entity';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -50,5 +54,13 @@ export class UsersController {
   @UseGuards(AdminGuard)
   async createAdmin(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto, UserRole.ADMIN);
+  }
+
+  @Get('clients')
+  @UseGuards(AdminGuard)
+  async findAllClients(
+    @Query() query: IPaginationOptions,
+  ): Promise<IPaginationResult<User>> {
+    return this.usersService.findAllClients(query);
   }
 }

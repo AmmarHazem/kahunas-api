@@ -403,4 +403,46 @@ export class SessionsService {
     }
     return updatedSession;
   }
+
+  async findUserSessions({
+    options,
+    clientId,
+  }: {
+    clientId: string;
+    options: IPaginationOptions & { status?: SessionStatus };
+  }): Promise<IPaginationResult<Session>> {
+    const status = options.status ?? SessionStatus.SCHEDULED;
+    const page = parseInt(options.page || '1');
+    const limit = Math.min(parseInt(options.limit || '10'), 100);
+    const skip = (page - 1) * limit;
+    const queryBuilder = this.sessionsRepository
+      .createQueryBuilder('session')
+      .leftJoin('session.client', 'client')
+      .addSelect([
+        'client.id',
+        'client.firstName',
+        'client.lastName',
+        'client.email',
+      ])
+      .leftJoin('session.coach', 'coach')
+      .addSelect([
+        'coach.id',
+        'coach.firstName',
+        'coach.lastName',
+        'coach.email',
+      ])
+      .where('client.id = :userId', { userId: clientId })
+      .andWhere('session.status = :status', {
+        status,
+      });
+    queryBuilder.orderBy('session.scheduledAt', 'DESC');
+    queryBuilder.skip(skip).take(limit);
+    const [sessions, total] = await queryBuilder.getManyAndCount();
+    return {
+      data: sessions,
+      total,
+      page,
+      limit,
+    };
+  }
 }

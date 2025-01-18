@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ExecutionContext } from '@nestjs/common';
-import * as jose from 'jose';
 import { ConfigService } from '@nestjs/config';
+import * as jose from 'jose';
 import * as crypto from 'crypto';
 
 @Injectable()

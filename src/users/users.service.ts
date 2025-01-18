@@ -11,6 +11,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './enums/user-role.enum';
 import { RequestUser } from 'src/auth/dto/RequestUser.dto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
+import { IPaginationResult } from 'src/interfaces/IPaginationResult';
+import { IPaginationOptions } from 'src/interfaces/IPaginationOptions';
 
 @Injectable()
 export class UsersService {
@@ -70,5 +72,33 @@ export class UsersService {
   async delete(id: string): Promise<void> {
     await this.analyticsService.handleCoachDeleted({ coachId: id });
     await this.usersRepository.delete(id);
+  }
+
+  async findAllClients(
+    options: IPaginationOptions,
+  ): Promise<IPaginationResult<User>> {
+    const page = parseInt(options.page || '1');
+    const limit = Math.min(parseInt(options.limit || '10'), 100);
+    const skip = (page - 1) * limit;
+    const [users, total] = await this.usersRepository.findAndCount({
+      where: { role: UserRole.CLIENT },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
+      },
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+    return {
+      data: users,
+      total,
+      page,
+      limit,
+    };
   }
 }

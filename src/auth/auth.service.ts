@@ -38,7 +38,7 @@ export class AuthService {
           ...registerDto,
           password: hashedPassword,
         },
-        registerDto.role === UserRole.COACH ? UserRole.COACH : UserRole.CLIENT,
+        registerDto.role,
       );
       const token = await this.generateToken(user);
       const [createdUser] = await Promise.all([

@@ -18,6 +18,10 @@ import { Roles } from 'src/auth/guards/Role.decorator';
 import { UserRole } from 'src/users/enums/user-role.enum';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { IPaginationOptions } from 'src/interfaces/IPaginationOptions';
+import { ListSessionsDto } from './dto/list-sessions.dto';
+import { IPaginationResult } from 'src/interfaces/IPaginationResult';
+import { Session } from './entities/session.entity';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
 @Controller('sessions')
 @UseGuards(JwtAuthGuard)
@@ -96,5 +100,17 @@ export class SessionsController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.sessionsService.deleteSession({ sessionId: id });
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('client/:clientId')
+  async findUserSessions(
+    @Param('clientId') clientId: string,
+    @Query() query: ListSessionsDto,
+  ): Promise<IPaginationResult<Session>> {
+    return this.sessionsService.findUserSessions({
+      clientId: clientId,
+      options: query,
+    });
   }
 }
