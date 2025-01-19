@@ -119,7 +119,3 @@ npm run start:prod
 - JWT authentication
 - Role-based access control
 - Request validation using DTOs
-
-## License
-
-[MIT Licensed](LICENSE)
