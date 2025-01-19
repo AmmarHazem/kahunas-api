@@ -1,85 +1,118 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Kahunas Coaching API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A robust NestJS-based REST API for managing coaching sessions, user management, and analytics.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- 🔐 Authentication & Authorization
+  - JWT-based authentication
+  - Role-based access control (Admin, Coach, Client)
+  - User registration and login
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- 👥 User Management
+  - User profiles
+  - Role management
+  - Admin user creation
 
-## Project setup
+- 📅 Session Management
+  - Create and manage coaching sessions
+  - Upcoming sessions for coaches and clients
+  - Completed sessions tracking
+  - Session status management
 
-```bash
-$ npm install
-```
+- 📊 Analytics
+  - Coach performance statistics
+  - Client progress tracking
+  - Top coaches ranking
 
-## Compile and run the project
+## Tech Stack
 
-```bash
-# development
-$ npm run start
+- NestJS - Progressive Node.js framework
+- TypeORM - ORM for database management
+- SQLite - Database (development)
+- JWT - Authentication
+- Class Validator - DTO validation
 
-# watch mode
-$ npm run start:dev
+## Prerequisites
 
-# production mode
-$ npm run start:prod
-```
+- Node.js (v14 or higher)
+- npm or yarn
 
-## Run tests
+## Installation
 
 ```bash
-# unit tests
-$ npm run test
+# Clone the repository
+git clone <repository-url>
 
-# e2e tests
-$ npm run test:e2e
+# Install dependencies
+npm install
 
-# test coverage
-$ npm run test:cov
+# Create .env file
+cp .env.example .env
 ```
 
-## Resources
+## Configuration
 
-Check out a few resources that may come in handy when working with NestJS:
+Create a `.env` file in the root directory with the following variables:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```env
+# JWT
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRATION=24h
 
-## Support
+# Database (if using MySQL)
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=password
+DB_DATABASE=coaching_db
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Running the Application
 
-## Stay in touch
+```bash
+# Development
+npm run start:dev
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Production
+npm run build
+npm run start:prod
+```
+
+## API Documentation
+
+### Auth Endpoints
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - User login
+
+### Users Endpoints
+- `GET /users/profile` - Get user profile
+- `PUT /users/:id` - Update user
+- `POST /users/admin` - Create admin user
+- `GET /users/clients` - List all clients (Admin only)
+
+### Sessions Endpoints
+- `POST /sessions` - Create a session
+- `GET /sessions` - List all sessions
+- `GET /sessions/client-upcoming` - Get client's upcoming sessions
+- `GET /sessions/coach-upcoming` - Get coach's upcoming sessions
+- `GET /sessions/client-complete` - Get client's completed sessions
+- `GET /sessions/coach-complete` - Get coach's completed sessions
+- `PUT /sessions/:id` - Update session
+- `DELETE /sessions/:id` - Delete session (Admin only)
+
+### Analytics Endpoints
+- `GET /analytics/coach/stats` - Get coach statistics
+- `GET /analytics/client/progress` - Get client progress
+- `GET /analytics/coaches/top` - Get top coaches
+
+## Security
+
+- Rate limiting implemented
+- JWT authentication
+- Role-based access control
+- Request validation using DTOs
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+[MIT Licensed](LICENSE)
