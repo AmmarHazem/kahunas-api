@@ -11,8 +11,10 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  await app.listen(3002, () => {
-    console.log('Server is running on port 3002');
+  app.enableCors();
+  const port = process.env.PORT || 3002;
+  await app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on port ${port}`);
   });
 }
 bootstrap();
