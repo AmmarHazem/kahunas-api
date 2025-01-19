@@ -2,6 +2,13 @@
 
 A robust NestJS-based REST API for managing coaching sessions, user management, and analytics.
 
+## Deployment
+
+The API is currently hosted on AWS EC2 and accessible at:
+http://13.127.188.120:80
+
+The application is monitored using AWS CloudWatch for logging, metrics, and performance monitoring.
+
 ## Features
 
 - 🔐 Authentication & Authorization
